@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meeting Translator with Avatars — speak one language, hear another</title>
+<meta name="description" content="Turn-based meeting translator. One person speaks, the other person's avatar speaks the translation. About four seconds a sentence.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true">MT</span>
+    <div>
+      <h1>Meeting Translator</h1>
+      <p class="tagline">Speak one language. The other person's avatar answers in theirs.</p>
+    </div>
+  </div>
+  <div class="top-actions">
+    <span class="latency-badge" id="latencyBadge" title="Measured average for this session. Before the first turn it shows the expected time.">~4 s per sentence</span>
+    <button class="btn btn-ghost" id="settingsBtn" type="button" aria-expanded="false" aria-controls="settingsPanel">Settings</button>
+  </div>
+</header>
+
+<section class="settings-panel" id="settingsPanel" hidden>
+  <div class="settings-grid">
+    <div>
+      <label for="geminiKey">Gemini API key <span class="hint">(free, AI Studio)</span></label>
+      <div class="key-row">
+        <input type="password" id="geminiKey" placeholder="Paste your key — stored in this browser only" autocomplete="off">
+        <button class="btn btn-solid" id="saveKeyBtn" type="button">Save key</button>
+        <button class="btn btn-ghost" id="removeKeyBtn" type="button">Remove</button>
+      </div>
+      <p class="key-status" id="keyStatus">No key saved. Without a key, only the three demo sentences translate.</p>
+      <p class="hint">Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>. The key never leaves this browser — translation calls go straight from this page to Google.</p>
+    </div>
+    <div>
+      <label for="voiceSelect">Voice for the translated speech</label>
+      <select id="voiceSelect"><option value="">System default for the language</option></select>
+      <p class="hint" id="voiceNote"></p>
+      <label class="rate-label" for="rateRange">Speech rate: <span id="rateValue">1.0×</span></label>
+      <input type="range" id="rateRange" min="0.5" max="1.5" step="0.1" value="1">
+      <label class="check"><input type="checkbox" id="captionsOnly"> Captions only — no spoken audio</label>
+    </div>
+  </div>
+</section>
+
+<main>
+  <section class="controls" aria-label="Meeting controls">
+    <div class="pair-picker" role="group" aria-label="Language pair">
+      <label for="pairSelect">Language pair</label>
+      <select id="pairSelect">
+        <option value="en-hi">English ↔ Hindi</option>
+        <option value="en-es">English ↔ Spanish</option>
+        <option value="en-fr">English ↔ French</option>
+      </select>
+    </div>
+    <div class="control-buttons">
+      <button class="btn btn-solid" id="demoBtn" type="button">Play demo script</button>
+      <button class="btn btn-outline" id="swapBtn" type="button">Swap direction</button>
+      <button class="btn btn-outline" id="stopBtn" type="button" disabled>Stop speaking</button>
+    </div>
+    <p class="direction-line" id="directionLine">Maya speaks English → Arjun hears Hindi</p>
+  </section>
+
+  <section class="stage" aria-label="Meeting participants">
+    <article class="pane" id="paneA">
+      <div class="avatar-wrap" id="avatarWrapA">
+        <svg class="avatar" viewBox="0 0 200 200" role="img" aria-label="Avatar of Maya">
+          <circle cx="100" cy="100" r="96" fill="#F3E3E9"/>
+          <circle cx="100" cy="88" r="52" fill="#C98A5E"/>
+          <path d="M48 88 Q52 34 100 32 Q148 34 152 88 Q140 58 100 56 Q60 58 48 88Z" fill="#3A2A2E"/>
+          <g class="eyes" id="eyesA">
+            <circle cx="80" cy="86" r="5" fill="#221A1E"/><circle cx="120" cy="86" r="5" fill="#221A1E"/>
+          </g>
+          <path d="M92 104 Q100 110 108 104" stroke="#8A5A3B" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <ellipse class="mouth" id="mouthA" cx="100" cy="128" rx="14" ry="2" fill="#5E1F36"/>
+        </svg>
+        <span class="speaking-dot" id="speakingDotA" hidden>Speaking</span>
+      </div>
+      <div class="pane-info">
+        <h2>Maya <span class="lang-tag" id="langTagA">English</span></h2>
+        <p class="pane-status" id="statusA">Ready. Press the mic and speak, or type below.</p>
+        <div class="meter" aria-hidden="true"><span id="meterA"></span></div>
+        <button class="btn btn-mic" id="micA" type="button" aria-label="Maya: speak with microphone">Speak as Maya</button>
+      </div>
+    </article>
+
+    <div class="arrow" aria-hidden="true"><span id="arrowLabel">→</span></div>
+
+    <article class="pane" id="paneB">
+      <div class="avatar-wrap" id="avatarWrapB">
+        <svg class="avatar" viewBox="0 0 200 200" role="img" aria-label="Avatar of Arjun">
+          <circle cx="100" cy="100" r="96" fill="#E9E4F0"/>
+          <circle cx="100" cy="88" r="52" fill="#8A5A3B"/>
+          <path d="M50 84 Q56 36 100 34 Q144 36 150 84 Q138 56 100 54 Q62 56 50 84Z" fill="#221A1E"/>
+          <g class="eyes" id="eyesB">
+            <circle cx="80" cy="86" r="5" fill="#221A1E"/><circle cx="120" cy="86" r="5" fill="#221A1E"/>
+          </g>
+          <path d="M92 104 Q100 110 108 104" stroke="#5E3A22" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <ellipse class="mouth" id="mouthB" cx="100" cy="128" rx="14" ry="2" fill="#5E1F36"/>
+        </svg>
+        <span class="speaking-dot" id="speakingDotB" hidden>Speaking</span>
+      </div>
+      <div class="pane-info">
+        <h2>Arjun <span class="lang-tag" id="langTagB">Hindi</span></h2>
+        <p class="pane-status" id="statusB">Listening for Maya.</p>
+        <div class="meter" aria-hidden="true"><span id="meterB"></span></div>
+        <button class="btn btn-mic" id="micB" type="button" aria-label="Arjun: speak with microphone">Speak as Arjun</button>
+      </div>
+    </article>
+  </section>
+
+  <section class="composer" aria-label="Type a sentence">
+    <label for="typedInput" id="typedLabel">Type what Maya says (English)</label>
+    <div class="composer-row">
+      <input type="text" id="typedInput" placeholder="Type a sentence, then press Enter — no mic needed" autocomplete="off">
+      <button class="btn btn-solid" id="sendTypedBtn" type="button">Translate &amp; speak</button>
+    </div>
+    <p class="composer-note" id="composerNote">Typed sentences work everywhere. The mic needs Chrome, Edge or Safari and a secure page (https or localhost).</p>
+  </section>
+
+  <section class="honesty" aria-label="What this is and is not">
+    <h2>Honest about the limits</h2>
+    <ul>
+      <li><strong>Turn-based, not instant.</strong> One sentence at a time, a few seconds from speech to translated speech (about four with live audio). The badge above shows the real measured average for this session.</li>
+      <li><strong>The mouth moves with the sound, not with phonemes.</strong> It opens and closes with audio loudness. It is not phoneme-accurate lip-sync — that needs a GPU and runs slower than real time.</li>
+      <li><strong>No key, no invented translation.</strong> Without a Gemini key, only the three demo sentences translate. Anything else says so plainly instead of guessing.</li>
+    </ul>
+  </section>
+
+  <section class="transcript" aria-label="Transcript">
+    <div class="transcript-head">
+      <h2>Transcript <span class="count" id="turnCount">0 turns</span></h2>
+      <div class="transcript-actions">
+        <button class="btn btn-ghost" id="copyBtn" type="button">Copy</button>
+        <button class="btn btn-ghost" id="downloadTxtBtn" type="button">Download .txt</button>
+        <button class="btn btn-ghost" id="downloadJsonBtn" type="button">Download .json</button>
+        <button class="btn btn-ghost" id="clearBtn" type="button">Clear</button>
+      </div>
+    </div>
+    <div class="turns" id="turns">
+      <p class="empty">Nothing yet. Play the demo script or speak a sentence — every turn lands here with its source and its latency.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <p>Meeting Translator with Avatars — a hackathon build. Speech recognition and voices come from your browser (Web Speech API). Translation uses the Gemini API (<code>gemini-2.5-flash</code>) only with a key you paste in Settings. No account, no server, nothing uploaded.</p>
+</footer>
+
+<script src="logic.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
