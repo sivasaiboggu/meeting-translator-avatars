@@ -155,6 +155,10 @@
         error: 'No translation for this sentence without a key. Add a free Gemini API key in Settings — the three demo sentences are the only ones that translate without one.' });
     }
     var req = MTA.geminiRequest(fromLang, toLang, text);
+    if (!req) {
+      return Promise.resolve({ text: null, source: 'none',
+        error: 'That language pair is not supported — the app translates English with Hindi, Spanish or French.' });
+    }
     return fetch(req.url + '?key=' + encodeURIComponent(key), {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req.body)

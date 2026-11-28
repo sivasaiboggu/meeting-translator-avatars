@@ -44,7 +44,11 @@
   }
 
   // Exact (normalised) match against the demo cache, either direction.
+  // Demo sentences only exist for English paired with one other language:
+  // a pair with no English side (e.g. Hindi -> Spanish) has no cache and
+  // must return null instead of borrowing another pair's translations.
   function lookupDemo(fromLang, toLang, text) {
+    if (fromLang !== 'en' && toLang !== 'en') return null;
     var pairKey = 'en-' + (fromLang === 'en' ? toLang : fromLang);
     var list = DEMO_SENTENCES[pairKey];
     if (!list) return null;
@@ -105,6 +109,9 @@
   }
 
   function geminiRequest(fromLang, toLang, text) {
+    // Unknown language codes used to throw (LANGS[code].label on undefined).
+    // Return null so the caller can say plainly it cannot translate this pair.
+    if (!LANGS[fromLang] || !LANGS[toLang]) return null;
     var fromName = LANGS[fromLang].label, toName = LANGS[toLang].label;
     return {
       url: GEMINI_ENDPOINT,

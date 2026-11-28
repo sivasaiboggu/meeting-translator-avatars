@@ -123,3 +123,17 @@ test('language metadata covers all three pairs', () => {
     assert.ok(MTA.LANGS[code].label);
   }
 });
+
+
+test('lookupDemo: a pair with no English side returns null, never another pair', () => {
+  assert.equal(MTA.lookupDemo('hi', 'es', 'The launch date moves to Friday, and the team is ready.'), null);
+  assert.equal(MTA.lookupDemo('es', 'fr', 'Buenos días, empecemos con el presupuesto del próximo trimestre.'), null);
+  // And the real pairs still work both ways.
+  assert.equal(MTA.lookupDemo('hi', 'en', 'लॉन्च की तारीख शुक्रवार हो गई है, और टीम तैयार है।'), 'The launch date moves to Friday, and the team is ready.');
+});
+
+test('geminiRequest: unknown language codes return null instead of throwing', () => {
+  assert.equal(MTA.geminiRequest('xx', 'en', 'hello'), null);
+  assert.equal(MTA.geminiRequest('en', 'xx', 'hello'), null);
+  assert.ok(MTA.geminiRequest('en', 'hi', 'hello').url.includes('gemini-2.5-flash'));
+});
